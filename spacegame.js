@@ -224,10 +224,12 @@
     this.width = this.img.width;
     this.height = this.img.height;
     this.rspeed = (Math.random() - 0.5)/20;
+    this.yspeed = (Math.random() - 0.5) * 3;
     this.rot = 0;
   }
   Asteroid.prototype.move = function move(dt) {
     this.x -= this.speed * dt * 60/1000;
+    this.y += this.yspeed * dt * 60/1000;
     this.rot += this.rspeed * dt * 60/1000;
     if (this.rot >= Math.PI * 2){ //made a complete rotation
       this.rot = 0;
@@ -365,8 +367,8 @@
   var asteroidPool = (function(pool){
     pool.generate = function generate(){ 
       var asteroidChance = Math.floor(Math.random()*101);
-      if (asteroidChance/100 < 0.003) {
-        pool.get(canvas.width, Math.floor(Math.random() * canvas.height), 6);
+      if (asteroidChance/100 < 0.005) {
+        pool.get(canvas.width, Math.floor(Math.random() * canvas.height), Math.floor(Math.random() * 9));
       }
     }
     return pool;
@@ -393,9 +395,9 @@
           accumulator -= dt;
       }
       background.draw();
+      asteroidPool.draw();
       ship.draw();
       ship.bulletPool.draw();
-      asteroidPool.draw();
     } 
   }
 
@@ -408,7 +410,7 @@
       Math.floor(canvas.height/2 - assetLoader.imgs.playership.height/2), 
       6    
     )
-    asteroidPool.init(5, Asteroid);
+    asteroidPool.init(8, Asteroid);
     asteroidPool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
     ship.makeBullets();
     animate();
