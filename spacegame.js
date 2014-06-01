@@ -1,4 +1,4 @@
-(function () {
+(function ($) {
   var game = this;
   var now = 0;
   var last = timestamp();
@@ -6,7 +6,8 @@
   var accumulator = 0;
   var canvas = document.getElementById("canvas");
   var ctx = canvas.getContext("2d");
-
+  var stop = false;
+  var debug = false; //draw bounding boxes
    /**
    * Asset pre-loader object. Loads all images
    */
@@ -140,6 +141,7 @@
     this.y = y;
     this.speed = speed;
     this.visible = true;
+    this.box = {x: this.x, y: this.y, width: this.width, height: this.height};
   };
 
 
@@ -169,6 +171,12 @@
       } else {
         ctx.drawImage(this.img, this.x, this.y);
       }
+      if(debug){
+        ctx.beginPath();
+        ctx.rect(this.box.x,this.box.y,this.box.width,this.box.height);
+        ctx.strokeStyle="red";
+        ctx.stroke();      
+      }
     }
   };
 
@@ -184,7 +192,10 @@
   PlayerBullet.prototype = Object.create(GameElement.prototype);
   PlayerBullet.prototype.move = function move(dt) {
     this.x += this.speed * dt * 60/1000;
+    this.box = {x: this.x, y: this.y, width: this.width, height: this.height};
     if (this.x >= canvas.width) {
+      return true;
+    } else if (this.detectCollisions()) {
       return true;
     }
   }
@@ -193,7 +204,16 @@
     this.width = this.img.width;
     this.height = this.img.height;
   }
-  function Pool(){
+  PlayerBullet.prototype.detectCollisions = function detectCollisions(){
+    for (var i = 0; i < asteroidPool.pool.length; i+=1){
+      var asteroid = asteroidPool.pool[i];
+      if(asteroid.hasOwnProperty('visible') && asteroid.visible == true){
+        if (this.box.x  < asteroid.x + asteroid.width && this.box.x + this.box.width  > asteroid.x &&
+          this.box.y < asteroid.y + asteroid.height && this.box.y + this.box.height > asteroid.y){
+          return true;
+        }
+      }
+    }
   }
 
   function Asteroid(){}
@@ -209,14 +229,25 @@
   Asteroid.prototype.move = function move(dt) {
     this.x -= this.speed * dt * 60/1000;
     this.rot += this.rspeed * dt * 60/1000;
-    /*if (this.rot >= Math.PI * 2){
+    if (this.rot >= Math.PI * 2){ //made a complete rotation
       this.rot = 0;
-    }*/
+    } 
     if (this.x <= 0 - this.width) {
       return true;
     }
+    this.box = {x: this.x + this.width * 1/8, y: this.y + this.height * 1/8, width: this.width * 3/4, height: this.height * 3/4};
   }
   
+  Asteroid.prototype.detectCollisions = function detectCollisions(){
+    if (this.box.x  < ship.box.x + ship.box.width && this.box.x + this.box.width  > ship.box.x &&
+    this.box.y < ship.box.y + ship.box.height && this.box.y + this.box.height > ship.box.y){
+      gameOver();
+    }
+  }
+
+  function Pool(){
+  }
+
   Pool.prototype.init = function init(size, type){
       this.pool = [];
       this.size = size;
@@ -252,10 +283,12 @@
     for (var i = 0; i<this.size; i++){
       if(this.pool[i].visible){
         this.pool[i].draw();
+        this.pool[i].detectCollisions();
       }
     }
   }
 
+  //use module pattern to create ship singleton
   var ship = (function ship (ship){
       var fireRate = 10;
       var counter = 0;
@@ -267,14 +300,17 @@
         ship.x = x;
         ship.y = y; 
         ship.speed = speed;
+        setBoundingBox();
+        ship.visible = false;
+      }
+
+      function setBoundingBox(){
+        ship.box = {x: ship.x, y: ship.y + ship.height*1/4, width: ship.width, height: ship.height * 1/2};
       }
 
       ship.makeBullets = function (){
         ship.bulletPool = Object.create(Pool.prototype);
         ship.bulletPool.init(30, PlayerBullet);
-      };
-      ship.draw = function() {
-        ctx.drawImage(ship.img, ship.x, ship.y);
       };
       ship.move = function(dt) {
         counter++;
@@ -315,11 +351,13 @@
           ship.fire();
           counter = 0;
         }
+        setBoundingBox();
       };
      
       ship.fire = function() {
         ship.bulletPool.get(ship.x+ship.width - 8, ship.y + ship.height * 5/8 + -1 , 7);
       }
+
 
       return ship;
   })(Object.create(GameElement.prototype));
@@ -337,29 +375,33 @@
    * Game loop
    */
   function animate() {
-    requestAnimFrame( animate );
-    now = timestamp();
-    dt = now - last;
-    last = now;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    accumulator += dt;
-    asteroidPool.generate();
-
-   while (accumulator >= dt) {
-        ship.move(dt);
-        background.move(dt);
-        ship.bulletPool.animate(dt);
-        asteroidPool.animate(dt);
-        accumulator -= dt;
-    }
-    background.draw();
-    ship.draw();
-    ship.bulletPool.draw();
-    asteroidPool.draw();
+    if(!stop){
+      requestAnimFrame( animate );
+      now = timestamp();
+      dt = now - last;
+      last = now;
+  
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      accumulator += dt;
+      asteroidPool.generate();
+  
+     while (accumulator >= dt) {
+          ship.move(dt);
+          background.move(dt);
+          ship.bulletPool.animate(dt);
+          asteroidPool.animate(dt);
+          accumulator -= dt;
+      }
+      background.draw();
+      ship.draw();
+      ship.bulletPool.draw();
+      asteroidPool.draw();
+    } 
   }
 
   function startGame() {
+    stop = false;
+    //ctx.clearRect(0, 0, canvas.width, canvas.height);
     background.reset();
     ship.init(
       0, 
@@ -369,8 +411,13 @@
     asteroidPool.init(5, Asteroid);
     asteroidPool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
     ship.makeBullets();
-    ship.draw();
     animate();
+  }
+
+  function gameOver(){
+    stop = true;
+    var gameOver = document.getElementById("game-over");
+    gameOver.style.display = 'block';
   }
 
   
@@ -442,6 +489,14 @@
     return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
   }
 
+
+  $(document).ready(function(){
+    $("#game-over").click(function(){
+      $(this).hide();
+      startGame();
+    })
+  })
+
   assetLoader.downloadAll();
 
-})();
+})(jQuery);
