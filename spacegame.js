@@ -15,8 +15,13 @@
     this.imgs        = {
       "bg1"            : "img/bglayer1.png",
       "bg2"            : "img/bglayer2.png",
+      "bg3"            : "img/bglayer3.png",
       "playership"     : "img/playership.png",
-      "playerbullet"   : "img/playerbullet.png"
+      "playerbullet"   : "img/playerbullet.png",
+      "asteroid1"      : "img/asteroid1.png",
+      "asteroid2"      : "img/asteroid2.png",
+      "asteroid3"      : "img/asteroid3.png",
+      "asteroid4"      : "img/asteroid4.png",
     };
     var assetsLoaded = 0;                                // how many assets have been loaded
     var numImgs      = Object.keys(this.imgs).length;    // total number of image assets
@@ -72,12 +77,14 @@
 
   var background = (function() {
     var layer1   = {};
-    var layer2    = {};
+    var layer2   = {};
+    var layer3   = {};
     
     this.move = function(dt){
       // Pan background
       layer1.x -= layer1.speed * dt * 60/1000;
       layer2.x -= layer2.speed * dt * 60/1000;
+      layer3.x -= layer3.speed * dt * 60/1000;
       // If the image scrolled off the screen, reset
       if (layer1.x + assetLoader.imgs.bg1.width <= 0){
         layer1.x = 0;
@@ -85,6 +92,10 @@
       if (layer2.x + assetLoader.imgs.bg2.width <= 0){
        layer2.x = 0;
       }
+      if (layer3.x + assetLoader.imgs.bg3.width <= 0){
+       layer3.x = 0;
+      }
+
     }
 
     /**
@@ -96,6 +107,8 @@
       ctx.drawImage(assetLoader.imgs.bg1, layer1.x + canvas.width, layer1.y);
       ctx.drawImage(assetLoader.imgs.bg2, layer2.x, layer2.y);
       ctx.drawImage(assetLoader.imgs.bg2, layer2.x + canvas.width, layer2.y);
+      ctx.drawImage(assetLoader.imgs.bg3, layer3.x, layer3.y);
+      ctx.drawImage(assetLoader.imgs.bg3, layer3.x + canvas.width, layer3.y);
     }
     /**
      * Reset background to zero
@@ -106,7 +119,10 @@
       layer1.speed = 2;
       layer2.x = 0;
       layer2.y = 0;
-      layer2.speed = 5;
+      layer2.speed = 3;
+      layer3.x = 0;
+      layer3.y = 0;
+      layer3.speed = 5;
     }
     return {
       draw: this.draw,
@@ -116,45 +132,10 @@
   })(); // end background
 
   function GameElement() {
+    
   }
-
-  GameElement.prototype.init = function init (x, y, width, height, speed) {
-    // Defualt variables
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-    this.speed = speed;
-  }
-
-  function Bullet(x, y, width, height, speed){
-    this.visible = false;
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-    this.speed = speed;
-
-  }
-  Bullet.prototype = Object.create(GameElement.prototype);
-  Bullet.prototype.draw = function draw() {
-    if(this.visible=true){
-      ctx.drawImage(assetLoader.imgs.playerbullet, this.x, this.y);
-    }
-  };
-  Bullet.prototype.move = function move(dt) {
-    this.x += this.speed * dt * 60/1000;
-    if (this.x >= canvas.width) {
-      return true;
-    }
-  }
-  Bullet.prototype.clear = function clear() {
-    this.x = 0;
-    this.y = 0;
-    this.speed = 0;
-    this.visible = false;
-  };
-  Bullet.prototype.spawn = function spawn(x, y, speed) {
+   GameElement.prototype.spawn = function spawn(x, y, speed) {
+    this.load();
     this.x = x;
     this.y = y;
     this.speed = speed;
@@ -162,28 +143,97 @@
   };
 
 
-  function BulletPool(){
-  }
-
-  BulletPool.prototype.init = function init(size){
-      this.pool = [];
-      this.size = size;
-      var bulletWidth = assetLoader.imgs.playerbullet.width;
-      var bulletHeight = assetLoader.imgs.playerbullet.height;
-      for (var i = 0; i < size; i++) {
-        // Initalize the bullet object
-        var bullet = new Bullet (0,0, bulletWidth,bulletHeight, 7);
-        this.pool[i] = bullet;
+  GameElement.prototype.draw = function draw() {
+    if(this.visible=true){
+      if(this.rspeed){
+        // save the context's co-ordinate system before 
+        // we screw with it
+        ctx.save(); 
+ 
+        // move the origin to 50, 35   
+        ctx.translate(this.x, this.y); 
+         
+        // now move across and down half the 
+        // width and height of the image (which is 128 x 128)
+        ctx.translate(this.width/2, this.height/2); 
+         
+        // rotate around this point
+        ctx.rotate(this.rot); 
+         
+        // then draw the image back and up
+        ctx.drawImage(this.img, -this.width/2, -this.height/2); 
+         
+        // and restore the co-ordinate system to its default
+        // top left origin with no rotation
+        ctx.restore();
+      } else {
+        ctx.drawImage(this.img, this.x, this.y);
+      }
     }
   };
 
-  BulletPool.prototype.get = function get(x, y, speed){
+  GameElement.prototype.clear = function clear() {
+    this.x = 0;
+    this.y = 0;
+    this.speed = 0;
+    this.visible = false;
+  };
+
+  function PlayerBullet(){
+  }
+  PlayerBullet.prototype = Object.create(GameElement.prototype);
+  PlayerBullet.prototype.move = function move(dt) {
+    this.x += this.speed * dt * 60/1000;
+    if (this.x >= canvas.width) {
+      return true;
+    }
+  }
+  PlayerBullet.prototype.load = function load(){
+    this.img = assetLoader.imgs.playerbullet;
+    this.width = this.img.width;
+    this.height = this.img.height;
+  }
+  function Pool(){
+  }
+
+  function Asteroid(){}
+
+  Asteroid.prototype = Object.create(GameElement.prototype);
+  Asteroid.prototype.load = function load(){
+    this.img = asteroidPool.images[Math.floor(Math.random() * asteroidPool.images.length)];
+    this.width = this.img.width;
+    this.height = this.img.height;
+    this.rspeed = (Math.random() - 0.5)/20;
+    this.rot = 0;
+  }
+  Asteroid.prototype.move = function move(dt) {
+    this.x -= this.speed * dt * 60/1000;
+    this.rot += this.rspeed * dt * 60/1000;
+    /*if (this.rot >= Math.PI * 2){
+      this.rot = 0;
+    }*/
+    if (this.x <= 0 - this.width) {
+      return true;
+    }
+  }
+  
+  Pool.prototype.init = function init(size, type){
+      this.pool = [];
+      this.size = size;
+      for (var i = 0; i < size; i++) {
+        // Initalize the object
+        var item = Object.create(type.prototype);
+        this.pool[i] = item;
+    }
+  };
+
+  Pool.prototype.get = function get(x, y, speed){
     if(!this.pool[this.size - 1].visible) {
       this.pool[this.size - 1].spawn(x, y, speed);
       this.pool.unshift(this.pool.pop());
     }
   };
-  BulletPool.prototype.animate = function animate(dt) {
+  Pool.prototype.animate = function animate(dt) {
     for (var i = 0; i < this.size; i++) {
       // Only draw until we find a bullet that is not alive
       if (this.pool[i].visible) {
@@ -198,7 +248,7 @@
     }
   };
 
-  BulletPool.prototype.draw = function draw() {
+  Pool.prototype.draw = function draw() {
     for (var i = 0; i<this.size; i++){
       if(this.pool[i].visible){
         this.pool[i].draw();
@@ -210,12 +260,21 @@
       var fireRate = 10;
       var counter = 0;
 
+      ship.init = function init(x, y, speed){
+        ship.img = assetLoader.imgs.playership;
+        ship.width = ship.img.width;
+        ship.height = ship.img.height;
+        ship.x = x;
+        ship.y = y; 
+        ship.speed = speed;
+      }
+
       ship.makeBullets = function (){
-        ship.bulletPool = Object.create(BulletPool.prototype);
-        ship.bulletPool.init(30);
+        ship.bulletPool = Object.create(Pool.prototype);
+        ship.bulletPool.init(30, PlayerBullet);
       };
       ship.draw = function() {
-        ctx.drawImage(assetLoader.imgs.playership, ship.x, ship.y);
+        ctx.drawImage(ship.img, ship.x, ship.y);
       };
       ship.move = function(dt) {
         counter++;
@@ -265,7 +324,15 @@
       return ship;
   })(Object.create(GameElement.prototype));
 
-  
+  var asteroidPool = (function(pool){
+    pool.generate = function generate(){ 
+      var asteroidChance = Math.floor(Math.random()*101);
+      if (asteroidChance/100 < 0.003) {
+        pool.get(canvas.width, Math.floor(Math.random() * canvas.height), 6);
+      }
+    }
+    return pool;
+  })(Object.create(Pool.prototype))
   /**
    * Game loop
    */
@@ -277,15 +344,19 @@
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     accumulator += dt;
-    while (accumulator >= dt) {
+    asteroidPool.generate();
+
+   while (accumulator >= dt) {
         ship.move(dt);
         background.move(dt);
         ship.bulletPool.animate(dt);
+        asteroidPool.animate(dt);
         accumulator -= dt;
     }
     background.draw();
     ship.draw();
     ship.bulletPool.draw();
+    asteroidPool.draw();
   }
 
   function startGame() {
@@ -293,10 +364,11 @@
     ship.init(
       0, 
       Math.floor(canvas.height/2 - assetLoader.imgs.playership.height/2), 
-      assetLoader.imgs.playership.width, 
-      assetLoader.imgs.playership.height,
-      5
+      5,
+      assetLoader.imgs.playership
     )
+    asteroidPool.init(5, Asteroid);
+    asteroidPool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
     ship.makeBullets();
     ship.draw();
     animate();
