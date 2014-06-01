@@ -9,6 +9,21 @@
 				left: 0px;
 				background: transparent;
 			}
+			.message {
+				position: absolute;
+				top: 150px;
+				left: 0px;
+				width: 640px;
+				height: 480px;
+				vertical-align: middle;
+				text-align: center;
+				display: none;
+				color: white;
+				text-shadow: 5px 5px 5px black;
+			}
+			.message h2 {
+				font-size: 36px;
+			}
 		</style>
 	</head>
 	<body>
@@ -18,6 +33,11 @@
 				Your browser does not support canvas. Please try again with a different browser.
 			</canvas>
 		</div>
+		<div id="game-over" class="message">
+			<h2>Game Over</h2>
+			<h3>Click to play again</h3>
+		</div>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 		<script src="spacegame.js"></script>
 	</body>
 </html>
