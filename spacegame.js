@@ -220,9 +220,12 @@
       var enemy = enemyPool.pool[i];
       if (this.box.x  < enemy.x + enemy.width && this.box.x + this.box.width  > enemy.x &&
           this.box.y < enemy.y + enemy.height && this.box.y + this.box.height > enemy.y){
+          if(enemy.destroyed == false){
+            enemy.destroyed = true;
+            addScore(1);
+          }
           enemy.clear();
           enemyPool.pool.push((enemyPool.pool.splice(i,1))[0]);
-          addScore(1);
           return true;
         }
     }
@@ -282,6 +285,7 @@
     this.direction = ["up", "down"][Math.floor(Math.random() * 2)];
     this.fireRate = 30;
     this.counter = 0;
+    this.destroyed = false;
   }
   Enemy.prototype.fire = function() {
     enemyBulletPool.get(this.x, this.y + this.height * 1/2, 7);
