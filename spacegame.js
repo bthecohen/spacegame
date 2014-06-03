@@ -210,7 +210,7 @@ var game = (function ($) {
   PlayerBullet.prototype.detectCollisions = function detectCollisions(){
     for (var i = 0; i < asteroidPool.pool.length; i+=1){
       var asteroid = asteroidPool.pool[i];
-      if(asteroid.hasOwnProperty('visible') && asteroid.visible == true){
+      if(asteroid.visible == true){
         if (this.box.x  < asteroid.x + asteroid.width && this.box.x + this.box.width  > asteroid.x &&
           this.box.y < asteroid.y + asteroid.height && this.box.y + this.box.height > asteroid.y){
           return true;
@@ -344,7 +344,7 @@ var game = (function ($) {
   EnemyBullet.prototype.detectCollisions = function detectCollisions(){
     for (var i = 0; i < asteroidPool.pool.length; i+=1){
       var asteroid = asteroidPool.pool[i];
-      if(asteroid.hasOwnProperty('visible') && asteroid.visible == true){
+      if(asteroid.visible == true){
         if (this.box.x  < asteroid.x + asteroid.width && this.box.x + this.box.width  > asteroid.x &&
           this.box.y < asteroid.y + asteroid.height && this.box.y + this.box.height > asteroid.y){
           return true;
