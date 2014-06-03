@@ -8,6 +8,7 @@
 				top: 0px;
 				left: 0px;
 				background: transparent;
+				z-index: -1;
 			}
 			.message {
 				position: absolute;
@@ -25,6 +26,15 @@
 			.message h2 {
 				font-size: 36px;
 			}
+			#score-counter {
+				position: absolute;
+				top: 10px;
+				left: 10px;
+				width: 50px;
+				height: 50px;
+				color: white;
+				z-index: 9999;
+			}
 		</style>
 	</head>
 	<body>
@@ -38,6 +48,7 @@
 			<h2>Game Over</h2>
 			<h3>Click to play again</h3>
 		</div>
+		<div id="score-counter">0</div>
 		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 		<script src="spacegame.js"></script>
 	</body>
