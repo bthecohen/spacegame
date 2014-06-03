@@ -51,6 +51,7 @@ var game = (function ($) {
      * Create assets, set callback for asset loading, set asset source
      */
     this.downloadAll = function() {
+      $("#loading").show();
       var self = this;
       var src;
       // load images
@@ -76,7 +77,7 @@ var game = (function ($) {
   })();
 
   assetLoader.finished = function() {
-    startGame();
+    $("#loading").fadeOut({duration: 400, start: startGame});
   }
 
   /**
@@ -623,8 +624,7 @@ var game = (function ($) {
 
   $(document).ready(function(){
     $("#game-over").click(function(){
-      $(this).hide();
-      startGame();
+      $(this).fadeOut({duration: 400, start: startGame});
     })
   })
 
