@@ -640,8 +640,7 @@ jQuery(document).ready(function($){
   var startscreen = $("#start-game");
   startscreen.show();
   startscreen.click(function(){
-    $(this).hide();
+    $(this).fadeOut({duration: 200, done: game.start});
     $("#score-counter").show();
-    game.start();
   })
 })
