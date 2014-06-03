@@ -77,6 +77,9 @@
     startGame();
   }
 
+  /**
+   * Singleton object to represent parallax-scrolling background
+   */
   var background = (function() {
     var layer1   = {};
     var layer2   = {};
@@ -101,10 +104,9 @@
     }
 
     /**
-     * Draw the backgrounds to the screen at different speeds
+     * Draw the backgrounds to the canvas
      */
     this.draw = function draw() {
-      // draw images side by side to loop
       ctx.drawImage(assetLoader.imgs.bg1, layer1.x, layer1.y);
       ctx.drawImage(assetLoader.imgs.bg1, layer1.x + canvas.width, layer1.y);
       ctx.drawImage(assetLoader.imgs.bg2, layer2.x, layer2.y);
@@ -126,13 +128,16 @@
       layer3.y = 0;
       layer3.speed = 5;
     }
-    return {
+    return {            // export public methods
       draw: this.draw,
       reset: this.reset,
       move: this.move
     };
   })(); // end background
 
+  /**
+   * Generic prototype for animated objects in game
+   */
   function GameElement() {
     
   }
@@ -148,26 +153,20 @@
 
   GameElement.prototype.draw = function draw() {
     if(this.visible=true){
-      if(this.rspeed){
-        // save the context's co-ordinate system before 
-        // we screw with it
+      if(this.rspeed){ // if the object is rotated
+
         ctx.save(); 
  
-        // move the origin to where we want to draw   
+        // move the origin of the canvas coordinates to the center of the object
+        // we want to rotate
         ctx.translate(this.x, this.y); 
-         
-        // now move across and down half the 
-        // width and height of the image
         ctx.translate(this.width/2, this.height/2); 
          
         // rotate around this point
         ctx.rotate(this.rot); 
          
-        // then draw the image back and up
         ctx.drawImage(this.img, -this.width/2, -this.height/2); 
          
-        // and restore the co-ordinate system to its default
-        // top left origin with no rotation
         ctx.restore();
       } else {
         ctx.drawImage(this.img, this.x, this.y);
@@ -188,6 +187,9 @@
     this.visible = false;
   };
 
+  /**
+   * Class for the bullets fired by the player's ship
+   */
   function PlayerBullet(){
   }
   PlayerBullet.prototype = Object.create(GameElement.prototype);
@@ -226,6 +228,9 @@
     }
   }
 
+  /**
+   * Class for the randomly-generated asteroid obstacles
+   */
   function Asteroid(){}
 
   Asteroid.prototype = Object.create(GameElement.prototype);
@@ -257,6 +262,9 @@
     }
   }
 
+  /**
+   * Class for enemy ships
+   */
   function Enemy(){}
 
   Enemy.prototype = Object.create(GameElement.prototype);
