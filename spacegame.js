@@ -14,20 +14,21 @@
   var assetLoader = (function() {
     // images dictionary
     this.imgs        = {
-      "bg1"            : "img/bglayer1.png",
-      "bg2"            : "img/bglayer2.png",
-      "bg3"            : "img/bglayer3.png",
-      "playership"     : "img/playership.png",
-      "playerbullet"   : "img/playerbullet.png",
-      "asteroid1"      : "img/asteroid1.png",
-      "asteroid2"      : "img/asteroid2.png",
-      "asteroid3"      : "img/asteroid3.png",
-      "asteroid4"      : "img/asteroid4.png",
+      "bg1"           : "img/bglayer1.png",
+      "bg2"           : "img/bglayer2.png",
+      "bg3"           : "img/bglayer3.png",
+      "playership"    : "img/playership.png",
+      "enemyship1"    : "img/enemyship1.png",
+      "playerbullet"  : "img/playerbullet.png",
+      "asteroid1"     : "img/asteroid1.png",
+      "asteroid2"     : "img/asteroid2.png",
+      "asteroid3"     : "img/asteroid3.png",
+      "asteroid4"     : "img/asteroid4.png",
     };
     var assetsLoaded = 0;                                // how many assets have been loaded
     var numImgs      = Object.keys(this.imgs).length;    // total number of image assets
     this.totalAssest = numImgs;                          // total number of assets
-    /**
+    /*
      * Ensure all assets are loaded before using them
      * @param {number} dic  – Dictionary name ('imgs')
      * @param {number} name – Asset name in the dictionary
@@ -214,6 +215,15 @@
         }
       }
     }
+    for (var i = 0; i < enemyPool.pool.length; i+=1){
+      var enemy = enemyPool.pool[i];
+      if (this.box.x  < enemy.x + enemy.width && this.box.x + this.box.width  > enemy.x &&
+          this.box.y < enemy.y + enemy.height && this.box.y + this.box.height > enemy.y){
+          enemy.clear();
+          enemyPool.pool.push((enemyPool.pool.splice(i,1))[0]);
+          return true;
+        }
+    }
   }
 
   function Asteroid(){}
@@ -241,6 +251,49 @@
   }
   
   Asteroid.prototype.detectCollisions = function detectCollisions(){
+    if (this.box.x  < ship.box.x + ship.box.width && this.box.x + this.box.width  > ship.box.x &&
+    this.box.y < ship.box.y + ship.box.height && this.box.y + this.box.height > ship.box.y){
+      gameOver();
+    }
+  }
+
+  function Enemy(){}
+
+  Enemy.prototype = Object.create(GameElement.prototype);
+
+  Enemy.prototype = Object.create(GameElement.prototype);
+  Enemy.prototype.load = function load(){
+    this.img = enemyPool.images[Math.floor(Math.random() * enemyPool.images.length)];
+    this.width = this.img.width;
+    this.height = this.img.height;
+    this.yspeed = 5;
+    this.xplane = Math.floor(Math.random()*(canvas.width - 100) + 100);
+    this.direction = ["up", "down"][Math.floor(Math.random() * 2)];
+  }
+  Enemy.prototype.move = function move(dt) {
+    if(Math.floor(this.x) >= Math.floor(this.xplane)){
+      this.x -= this.speed * dt * 60/1000;
+    } 
+    if (this.direction == "up") { 
+      this.y -= this.yspeed * dt * 60/1000; 
+    }
+    if (this.direction == "down"){
+      this.y += this.yspeed * dt * 60/1000;
+    }
+    
+    if(this.y <= 0){
+      this.direction = "down";
+    }
+    if(this.y + this.height >= canvas.height){
+      this.direction = "up";
+    }
+    if (this.x <= 0 - this.width) {
+      return true;
+    }
+    this.box = {x: this.x + this.width * 1/8, y: this.y + this.height * 1/8, width: this.width * 3/4, height: this.height * 3/4};
+  }
+  
+  Enemy.prototype.detectCollisions = function detectCollisions(){
     if (this.box.x  < ship.box.x + ship.box.width && this.box.x + this.box.width  > ship.box.x &&
     this.box.y < ship.box.y + ship.box.height && this.box.y + this.box.height > ship.box.y){
       gameOver();
@@ -373,6 +426,16 @@
     }
     return pool;
   })(Object.create(Pool.prototype))
+
+  var enemyPool = (function(pool){
+    pool.generate = function generate(){ 
+      var chance = Math.floor(Math.random()*101);
+      if (chance/100 < 0.005) {
+        pool.get(canvas.width, Math.floor(Math.random() * canvas.height), 7);
+      }
+    }
+    return pool;
+  })(Object.create(Pool.prototype))
   /**
    * Game loop
    */
@@ -386,16 +449,19 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       accumulator += dt;
       asteroidPool.generate();
+      enemyPool.generate();
   
      while (accumulator >= dt) {
           ship.move(dt);
           background.move(dt);
           ship.bulletPool.animate(dt);
           asteroidPool.animate(dt);
+          enemyPool.animate(dt);
           accumulator -= dt;
       }
       background.draw();
       asteroidPool.draw();
+      enemyPool.draw();
       ship.draw();
       ship.bulletPool.draw();
     } 
@@ -412,6 +478,8 @@
     )
     asteroidPool.init(8, Asteroid);
     asteroidPool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
+    enemyPool.init(7, Enemy);
+    enemyPool.images = [assetLoader.imgs.enemyship1];
     ship.makeBullets();
     animate();
   }
