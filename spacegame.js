@@ -1,4 +1,4 @@
-(function ($) {
+var game = (function ($) {
   var game = this;
   var now = 0;
   var last = timestamp();
@@ -527,7 +527,7 @@
 
   function startGame() {
     score = 0;
-    $("#score-counter").html(0);
+    $("#score-counter span").html(0);
     stop = false;
     //ctx.clearRect(0, 0, canvas.width, canvas.height);
     background.reset();
@@ -553,7 +553,7 @@
 
   function addScore(n){
     score += n;
-    $('#score-counter').html(score);
+    $('#score-counter span').html(score);
   }
   
   /**
@@ -632,6 +632,20 @@
     })
   })
 
-  assetLoader.downloadAll();
-
+  return {
+    start: function(){
+      assetLoader.downloadAll();
+    }
+  }
+  
 })(jQuery);
+
+jQuery(document).ready(function($){
+  var startscreen = $("#start-game");
+  startscreen.show();
+  startscreen.click(function(){
+    $(this).hide();
+    $("#score-counter").show();
+    game.start();
+  })
+})
