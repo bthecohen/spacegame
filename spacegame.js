@@ -267,7 +267,7 @@
     this.width = this.img.width;
     this.height = this.img.height;
     this.yspeed = 5;
-    this.xplane = Math.floor(Math.random()*(canvas.width - 100) + 100);
+    this.xplane = Math.floor(Math.random()*(canvas.width - 100) + 50);
     this.direction = ["up", "down"][Math.floor(Math.random() * 2)];
   }
   Enemy.prototype.move = function move(dt) {
@@ -368,40 +368,32 @@
         ship.bulletPool.init(30, PlayerBullet);
       };
       ship.move = function(dt) {
-        counter++;
-        // Determine if the action is move action
-        if (KEY_STATUS.left || KEY_STATUS.right ||
-          KEY_STATUS.down || KEY_STATUS.up) {
-          // The ship moved, so erase its current image so it can
-          // be redrawn in its new location
-          // Update x and y according to the direction to move and
-          // redraw the ship. Change the else ifs to if statements
-          // to have diagonal movement.
-          if (KEY_STATUS.left) {
-            ship.x -= ship.speed * dt * 60/1000;
-            if (ship.x <= 0){ // Keep player within the screen
-              ship.x = 0;
-            }
-          } 
-          if (KEY_STATUS.right) {
-            ship.x += ship.speed * dt * 60/1000;
-            if (ship.x >= canvas.width - ship.width){
-              ship.x = canvas.width - ship.width;
-            }
-          } 
-          if (KEY_STATUS.up) {
-            ship.y -= ship.speed * dt * 60/1000;
-            if (ship.y <= 0){
-              ship.y = 0;
-            }
-          } 
-          if (KEY_STATUS.down) {
-            ship.y += ship.speed * dt * 60/1000;
-            if (ship.y >= canvas.height - ship.height) {
-              ship.y = canvas.height - ship.height;
-            }
+        counter += dt * 60/1000; // cooldown between firings
+        if (KEY_STATUS.left) {
+          ship.x -= ship.speed * dt * 60/1000;
+          if (ship.x <= 0){ // Keep ship on the screen
+            ship.x = 0;
+          }
+        } 
+        if (KEY_STATUS.right) {
+          ship.x += ship.speed * dt * 60/1000;
+          if (ship.x >= canvas.width - ship.width){ // Keep ship on the screen
+            ship.x = canvas.width - ship.width;
+          }
+        } 
+        if (KEY_STATUS.up) {
+          ship.y -= ship.speed * dt * 60/1000;
+          if (ship.y <= 0){ // Keep ship on the screen
+            ship.y = 0;
+          }
+        } 
+        if (KEY_STATUS.down) {
+          ship.y += ship.speed * dt * 60/1000;
+          if (ship.y >= canvas.height - ship.height) { // Keep ship on the screen
+            ship.y = canvas.height - ship.height;
           }
         }
+        
         if (KEY_STATUS.space && counter >= fireRate) {
           ship.fire();
           counter = 0;
