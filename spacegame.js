@@ -153,7 +153,7 @@ var game = (function ($) {
       * Activate a new object from an object pool.
       */
     GameElement.prototype.spawn = function spawn(x, y, speed) {
-      if(typeof this.load = "function"){
+      if(typeof this.load == "function"){
         this.load(); // class-specific special behavior
       }
       this.x = x;
