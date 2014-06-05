@@ -390,6 +390,10 @@ var game = (function ($) {
   function Pool(){}
 
   Pool.prototype.init = function init(size, type){
+     // run any class-specific init code
+      if (typeof this.preInit == "function"){
+        this.preInit();
+      }
       this.pool = [];
       this.size = size;
       for (var i = 0; i < size; i++) {
@@ -506,6 +510,10 @@ var game = (function ($) {
         pool.get(canvas.width, Math.floor(Math.random() * canvas.height), Math.floor(Math.random() * 9));
       }
     }
+    //class-specific method called at top of init method
+    pool.preInit = function setImages(){
+      pool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
+    }
     return pool;
   })(Object.create(Pool.prototype))
 
@@ -519,6 +527,10 @@ var game = (function ($) {
       if (chance/100 < 0.005) {
         pool.get(canvas.width, Math.floor(Math.random() * canvas.height), 7);
       }
+    }
+    //class-specific method called at top of init method
+    pool.preInit = function setImages(){
+      pool.images = [assetLoader.imgs.enemyship1];
     }
     return pool;
   })(Object.create(Pool.prototype))
@@ -575,9 +587,7 @@ var game = (function ($) {
       6    
     )
     asteroidPool.init(8, Asteroid);
-    asteroidPool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
     enemyPool.init(7, Enemy);
-    enemyPool.images = [assetLoader.imgs.enemyship1];
     enemyBulletPool.init(50, EnemyBullet);
     ship.makeBullets();
     animate();
