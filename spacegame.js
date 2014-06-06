@@ -19,10 +19,7 @@ var game = (function ($) {
   var score = 0; // the player's score
   var stop = false;
   var debug = false; //draw bounding boxes
-<<<<<<< HEAD
   var hardMode = true; // enable nasty features
-=======
->>>>>>> c4642b6da321b85886c3ab4c16621dd5a0e0f8c2
    
    /**
    * Asynchronous asset pre-loader by Steven Lambert
@@ -157,7 +154,6 @@ var game = (function ($) {
       * Activate a new object from an object pool.
       */
     GameElement.prototype.spawn = function spawn(x, y, speed) {
-<<<<<<< HEAD
       this.x = x;
       this.y = y;
       this.speed = speed;
@@ -166,16 +162,6 @@ var game = (function ($) {
       if(typeof this.load == "function"){
         this.load(); // class-specific special behavior
       }
-=======
-      if(typeof this.load == "function"){
-        this.load(); // class-specific special behavior
-      }
-      this.x = x;
-      this.y = y;
-      this.speed = speed;
-      this.visible = true;
-      this.box = {x: this.x, y: this.y, width: this.width, height: this.height}; //default bounding box
->>>>>>> c4642b6da321b85886c3ab4c16621dd5a0e0f8c2
     };
   
   
