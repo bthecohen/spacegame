@@ -348,9 +348,11 @@ var game = (function ($) {
   
   //if returns true, the pool deactivates the current object
   EnemyBullet.prototype.move = function move(dt) {
-    this.x -= this.xspeed * dt * 60/1000;
     if(hardMode){
+      this.x -= this.xspeed * dt * 60/1000;
       this.y += this.yspeed * dt * 60/1000;
+    } else {
+      this.x -= this.speed * dt * 60/1000;
     }
     this.rot -= this.rspeed * dt * 60/1000;
     if (this.rot >= Math.PI * 2){ //made a complete rotation
