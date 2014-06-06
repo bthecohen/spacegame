@@ -19,6 +19,7 @@ var game = (function ($) {
   var score = 0; // the player's score
   var stop = false;
   var debug = false; //draw bounding boxes
+  var hardMode = false; // enable nasty features
    
    /**
    * Asynchronous asset pre-loader by Steven Lambert
@@ -153,14 +154,14 @@ var game = (function ($) {
       * Activate a new object from an object pool.
       */
     GameElement.prototype.spawn = function spawn(x, y, speed) {
-      if(typeof this.load == "function"){
-        this.load(); // class-specific special behavior
-      }
       this.x = x;
       this.y = y;
       this.speed = speed;
       this.visible = true;
       this.box = {x: this.x, y: this.y, width: this.width, height: this.height}; //default bounding box
+      if(typeof this.load == "function"){
+        this.load(); // class-specific special behavior
+      }
     };
   
   
@@ -347,9 +348,18 @@ var game = (function ($) {
   
   //if returns true, the pool deactivates the current object
   EnemyBullet.prototype.move = function move(dt) {
-    this.x -= this.speed ;
+    if(hardMode){
+      this.x -= this.xspeed * dt * 60/1000;
+      this.y += this.yspeed * dt * 60/1000;
+    } else {
+      this.x -= this.speed * dt * 60/1000;
+    }
+    this.rot -= this.rspeed * dt * 60/1000;
+    if (this.rot >= Math.PI * 2){ //made a complete rotation
+      this.rot = 0;
+    } 
     this.box = {x: this.x, y: this.y, width: this.width, height: this.height};
-    if (this.x <= 0) {
+    if (this.x <= 0 || this.y + this.height >= canvas.height || this.y <= 0) {
       return true;
     } else if (this.detectCollisions()) {
       return true;
@@ -361,6 +371,14 @@ var game = (function ($) {
     this.img = assetLoader.imgs.enemybullet1;
     this.width = this.img.width;
     this.height = this.img.height;
+
+    var dy = ship.y - this.y;
+    var dx = Math.abs(ship.x - this.x);
+    var distance = Math.sqrt(dy*dy + dx*dx);
+    this.yspeed = this.speed * dy/distance;
+    this.xspeed = this.speed * dx/distance;
+    this.rspeed = this.yspeed >= 0 ? 0.3 : -0.3;
+    this.rot = 0;
   }
   
   EnemyBullet.prototype.detectCollisions = function detectCollisions(){
@@ -492,7 +510,7 @@ var game = (function ($) {
       };
      
       ship.fire = function() {
-        ship.bulletPool.get(ship.x+ship.width - 8, ship.y + ship.height * 5/8 + -1 , 7);
+        ship.bulletPool.get(ship.x+ship.width - 8, ship.y + ship.height * 5/8 + -1 , 8);
       }
 
 
@@ -584,7 +602,7 @@ var game = (function ($) {
     ship.init(
       0, 
       Math.floor(canvas.height/2 - assetLoader.imgs.playership.height/2), 
-      6    
+      7    
     )
     asteroidPool.init(8, Asteroid);
     enemyPool.init(7, Enemy);
