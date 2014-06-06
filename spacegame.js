@@ -21,78 +21,6 @@ var game = (function ($) {
   var debug = false; //draw bounding boxes
   var hardMode = false; // enable nasty features
    
-   /**
-   * Asynchronous asset pre-loader by Steven Lambert
-   */
-  var assetLoader = (function() {
-    // images dictionary
-    this.imgs        = {
-      "bg1"           : "img/bglayer1.png",
-      "bg2"           : "img/bglayer2.png",
-      "bg3"           : "img/bglayer3.png",
-      "playership"    : "img/playership.png",
-      "enemyship1"    : "img/enemyship1.png",
-      "playerbullet"  : "img/playerbullet.png",
-      "enemybullet1"  : "img/enemybullet1.png",
-      "asteroid1"     : "img/asteroid1.png",
-      "asteroid2"     : "img/asteroid2.png",
-      "asteroid3"     : "img/asteroid3.png",
-      "asteroid4"     : "img/asteroid4.png",
-    };
-    var assetsLoaded = 0;                                // how many assets have been loaded
-    var numImgs      = Object.keys(this.imgs).length;    // total number of image assets
-    this.totalAssest = numImgs;                          // total number of assets
-    /*
-     * Ensure all assets are loaded before using them
-     * @param {number} dic  – Dictionary name ('imgs')
-     * @param {number} name – Asset name in the dictionary
-     */
-    function assetLoaded(dic, name) {
-      // don’t count assets that have already loaded
-      if (this[dic][name].status !== "loading" ) {
-        return;
-      }
-      this[dic][name].status = "loaded";
-      assetsLoaded++;
-      // finished callback
-      if (assetsLoaded === this.totalAssest && typeof this.finished === "function") {
-        this.finished();
-      }
-    }
-    /**
-     * Create assets, set callback for asset loading, set asset source
-     */
-    this.downloadAll = function() {
-      $("#loading").show();
-      var self = this;
-      var src;
-      // load images
-      for (var img in this.imgs) {
-        if (this.imgs.hasOwnProperty(img)) {
-          src = this.imgs[img];
-          // create a closure for event binding
-          (function(self, img) {
-            self.imgs[img] = new Image();
-            self.imgs[img].status = "loading";
-            self.imgs[img].name = img;
-            self.imgs[img].onload = function() { assetLoaded.call(self, "imgs", img) };
-            self.imgs[img].src = src;
-          })(self, img);
-        }
-      }
-    }
-    //export public methods
-    return {
-      imgs: this.imgs,
-      totalAssest: this.totalAssest,
-      downloadAll: this.downloadAll
-    };
-  })();
-
-  assetLoader.finished = function() {
-    $("#loading").fadeOut({duration: 400, start: startGame});
-  }
-
   /**
    * Singleton object to represent parallax-scrolling background
    */
@@ -400,57 +328,7 @@ var game = (function ($) {
     }
   }
 
-  /**
-   * Base class for object pools. Optimizes performance by reusing objects; keeps buckets of "visible"
-   * and "invisble" objects instead of creating and destroying objects. This avoids the performance hits of
-   * allocation and garbage collection. Based on an implementation by Steven Lambert.
-   */
-  function Pool(){}
-
-  Pool.prototype.init = function init(size, type){
-     // run any class-specific init code
-      if (typeof this.preInit == "function"){
-        this.preInit();
-      }
-      this.pool = [];
-      this.size = size;
-      for (var i = 0; i < size; i++) {
-        // Initalize the object
-        var item = Object.create(type.prototype);
-        this.pool[i] = item;
-    }
-  };
-
-  Pool.prototype.get = function get(x, y, speed){
-    if(!this.pool[this.size - 1].visible) {
-      this.pool[this.size - 1].spawn(x, y, speed);
-      this.pool.unshift(this.pool.pop());
-    }
-  };
-  Pool.prototype.animate = function animate(dt) {
-    for (var i = 0; i < this.size; i++) {
-      // Only draw until we find an item that is not alive
-      if (this.pool[i].visible) {
-        if (this.pool[i].move(dt)) {
-          this.pool[i].clear();
-          this.pool.push((this.pool.splice(i,1))[0]);
-        }
-      }
-      else {
-        break;
-      }
-    }
-  };
-
-  Pool.prototype.draw = function draw() {
-    for (var i = 0; i<this.size; i++){
-      if(this.pool[i].visible){
-        this.pool[i].draw();
-        this.pool[i].detectCollisions();
-      }
-    }
-  }
-
+ 
   //use IIFE (Immediately Invoked Funcion Expression) module pattern to create ship singleton
   var ship = (function ship (ship){
       var fireRate = 10; // the cooldown between firings (smaller number = faster firing rate)
@@ -516,6 +394,57 @@ var game = (function ($) {
 
       return ship;
   })(Object.create(GameElement.prototype));
+
+   /**
+   * Base class for object pools. Optimizes performance by reusing objects; keeps buckets of "visible"
+   * and "invisble" objects instead of creating and destroying objects. This avoids the performance hits of
+   * allocation and garbage collection. Based on an implementation by Steven Lambert.
+   */
+  function Pool(){}
+
+  Pool.prototype.init = function init(size, type){
+     // run any class-specific init code
+      if (typeof this.preInit == "function"){
+        this.preInit();
+      }
+      this.pool = [];
+      this.size = size;
+      for (var i = 0; i < size; i++) {
+        // Initalize the object
+        var item = Object.create(type.prototype);
+        this.pool[i] = item;
+    }
+  };
+
+  Pool.prototype.get = function get(x, y, speed){
+    if(!this.pool[this.size - 1].visible) {
+      this.pool[this.size - 1].spawn(x, y, speed);
+      this.pool.unshift(this.pool.pop());
+    }
+  };
+  Pool.prototype.animate = function animate(dt) {
+    for (var i = 0; i < this.size; i++) {
+      // Only draw until we find an item that is not alive
+      if (this.pool[i].visible) {
+        if (this.pool[i].move(dt)) {
+          this.pool[i].clear();
+          this.pool.push((this.pool.splice(i,1))[0]);
+        }
+      }
+      else {
+        break;
+      }
+    }
+  };
+
+  Pool.prototype.draw = function draw() {
+    for (var i = 0; i<this.size; i++){
+      if(this.pool[i].visible){
+        this.pool[i].draw();
+        this.pool[i].detectCollisions();
+      }
+    }
+  }
 
   /**
    * Singleton containing the pool of available asteroids
@@ -691,6 +620,79 @@ var game = (function ($) {
               };
       return fun;
   })();
+  
+  /**
+   * Asynchronous asset pre-loader by Steven Lambert
+   */
+  var assetLoader = (function() {
+    // images dictionary
+    this.imgs        = {
+      "bg1"           : "img/bglayer1.png",
+      "bg2"           : "img/bglayer2.png",
+      "bg3"           : "img/bglayer3.png",
+      "playership"    : "img/playership.png",
+      "enemyship1"    : "img/enemyship1.png",
+      "playerbullet"  : "img/playerbullet.png",
+      "enemybullet1"  : "img/enemybullet1.png",
+      "asteroid1"     : "img/asteroid1.png",
+      "asteroid2"     : "img/asteroid2.png",
+      "asteroid3"     : "img/asteroid3.png",
+      "asteroid4"     : "img/asteroid4.png",
+    };
+    var assetsLoaded = 0;                                // how many assets have been loaded
+    var numImgs      = Object.keys(this.imgs).length;    // total number of image assets
+    this.totalAssest = numImgs;                          // total number of assets
+    /*
+     * Ensure all assets are loaded before using them
+     * @param {number} dic  – Dictionary name ('imgs')
+     * @param {number} name – Asset name in the dictionary
+     */
+    function assetLoaded(dic, name) {
+      // don’t count assets that have already loaded
+      if (this[dic][name].status !== "loading" ) {
+        return;
+      }
+      this[dic][name].status = "loaded";
+      assetsLoaded++;
+      // finished callback
+      if (assetsLoaded === this.totalAssest && typeof this.finished === "function") {
+        this.finished();
+      }
+    }
+    /**
+     * Create assets, set callback for asset loading, set asset source
+     */
+    this.downloadAll = function() {
+      $("#loading").show();
+      var self = this;
+      var src;
+      // load images
+      for (var img in this.imgs) {
+        if (this.imgs.hasOwnProperty(img)) {
+          src = this.imgs[img];
+          // create a closure for event binding
+          (function(self, img) {
+            self.imgs[img] = new Image();
+            self.imgs[img].status = "loading";
+            self.imgs[img].name = img;
+            self.imgs[img].onload = function() { assetLoaded.call(self, "imgs", img) };
+            self.imgs[img].src = src;
+          })(self, img);
+        }
+      }
+    }
+    //export public methods
+    return {
+      imgs: this.imgs,
+      totalAssest: this.totalAssest,
+      downloadAll: this.downloadAll
+    };
+  })();
+
+  assetLoader.finished = function() {
+    $("#loading").fadeOut({duration: 400, start: startGame});
+  }
+
 
   //polyfill that either uses native DOM method or Date object
   function timestamp() {
