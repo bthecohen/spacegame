@@ -19,7 +19,7 @@ var game = (function ($) {
   var score = 0; // the player's score
   var stop = false;
   var debug = false; //draw bounding boxes
-  var hardMode = true; // enable nasty features
+  var hardMode = false; // enable nasty features
    
    /**
    * Asynchronous asset pre-loader by Steven Lambert
