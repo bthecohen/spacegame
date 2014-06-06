@@ -1,16 +1,28 @@
 var game = (function ($) {
-  var game = this;
+  /**
+   * Time-tracking variables to ensure correct game speed
+   */
   var now = 0;
   var last = timestamp();
   var dt = 0;
   var accumulator = 0;
+  
+  /**
+   * the main game canvas
+   */
   var canvas = document.getElementById("canvas");
   var ctx = canvas.getContext("2d");
+  
+  /**
+   * game state
+   */
   var score = 0; // the player's score
   var stop = false;
   var debug = false; //draw bounding boxes
+  var hardMode = true; // enable nasty features
+   
    /**
-   * Asset pre-loader object. Loads all images
+   * Asynchronous asset pre-loader by Steven Lambert
    */
   var assetLoader = (function() {
     // images dictionary
@@ -69,6 +81,7 @@ var game = (function ($) {
         }
       }
     }
+    //export public methods
     return {
       imgs: this.imgs,
       totalAssest: this.totalAssest,
@@ -89,7 +102,6 @@ var game = (function ($) {
     var layer3   = {};
     
     this.move = function(dt){
-      // Pan background
       layer1.x -= layer1.speed * dt * 60/1000;
       layer2.x -= layer2.speed * dt * 60/1000;
       layer3.x -= layer3.speed * dt * 60/1000;
@@ -106,9 +118,6 @@ var game = (function ($) {
 
     }
 
-    /**
-     * Draw the backgrounds to the canvas
-     */
     this.draw = function draw() {
       ctx.drawImage(assetLoader.imgs.bg1, layer1.x, layer1.y);
       ctx.drawImage(assetLoader.imgs.bg1, layer1.x + canvas.width, layer1.y);
@@ -117,9 +126,7 @@ var game = (function ($) {
       ctx.drawImage(assetLoader.imgs.bg3, layer3.x, layer3.y);
       ctx.drawImage(assetLoader.imgs.bg3, layer3.x + canvas.width, layer3.y);
     }
-    /**
-     * Reset background to zero
-     */
+   
     this.reset = function reset()  {
       layer1.x = 0;
       layer1.y = 0;
@@ -141,207 +148,239 @@ var game = (function ($) {
   /**
    * Generic prototype for animated objects in game
    */
-  function GameElement() {
-    
-  }
-   GameElement.prototype.spawn = function spawn(x, y, speed) {
-    this.load();
-    this.x = x;
-    this.y = y;
-    this.speed = speed;
-    this.visible = true;
-    this.box = {x: this.x, y: this.y, width: this.width, height: this.height};
-  };
-
-
-  GameElement.prototype.draw = function draw() {
-    if(this.visible=true){
-      if(this.rspeed){ // if the object is rotated
-
-        ctx.save(); 
- 
-        // move the origin of the canvas coordinates to the center of the object
-        // we want to rotate
-        ctx.translate(this.x, this.y); 
-        ctx.translate(this.width/2, this.height/2); 
-         
-        // rotate around this point
-        ctx.rotate(this.rot); 
-         
-        ctx.drawImage(this.img, -this.width/2, -this.height/2); 
-         
-        ctx.restore();
-      } else {
-        ctx.drawImage(this.img, this.x, this.y);
+  function GameElement() {}
+  
+    /**
+      * Activate a new object from an object pool.
+      */
+    GameElement.prototype.spawn = function spawn(x, y, speed) {
+      this.x = x;
+      this.y = y;
+      this.speed = speed;
+      this.visible = true;
+      this.box = {x: this.x, y: this.y, width: this.width, height: this.height}; //default bounding box
+      if(typeof this.load == "function"){
+        this.load(); // class-specific special behavior
       }
-      if(debug){
-        ctx.beginPath();
-        ctx.rect(this.box.x,this.box.y,this.box.width,this.box.height);
-        ctx.strokeStyle="red";
-        ctx.stroke();      
+    };
+  
+  
+    GameElement.prototype.draw = function draw() {
+      if(this.visible=true){
+        if(this.rspeed){ // if the object is rotating
+          // save the state of the coordinate system
+          ctx.save(); 
+          // move the origin of the canvas coordinates to the center of the object
+          // we want to rotate
+          ctx.translate(this.x, this.y); 
+          ctx.translate(this.width/2, this.height/2); 
+          // rotate around this point
+          ctx.rotate(this.rot); 
+          ctx.drawImage(this.img, -this.width/2, -this.height/2); 
+          //restore the previously stored state
+          ctx.restore();
+        } else { // the object is not rotating
+          ctx.drawImage(this.img, this.x, this.y);
+        }
+        if(debug){  // draw the bounding box if debug mode is on
+          ctx.beginPath();
+          ctx.rect(this.box.x,this.box.y,this.box.width,this.box.height);
+          ctx.strokeStyle="red";
+          ctx.stroke();      
+        }
       }
-    }
-  };
-
-  GameElement.prototype.clear = function clear() {
-    this.visible = false;
-  };
+    };
+  
+    GameElement.prototype.clear = function clear() {
+      this.visible = false;
+    };
+  
+  // end GameElement
 
   /**
    * Class for the bullets fired by the player's ship
    */
-  function PlayerBullet(){
-  }
-  PlayerBullet.prototype = Object.create(GameElement.prototype);
-  PlayerBullet.prototype.move = function move(dt) {
-    this.x += this.speed * dt * 60/1000;
-    this.box = {x: this.x, y: this.y, width: this.width, height: this.height};
-    if (this.x >= canvas.width) {
-      return true;
-    } else if (this.detectCollisions()) {
-      return true;
-    }
-  }
-  PlayerBullet.prototype.load = function load(){
-    this.img = assetLoader.imgs.playerbullet;
-    this.width = this.img.width;
-    this.height = this.img.height;
-  }
-  PlayerBullet.prototype.detectCollisions = function detectCollisions(){
-    for (var i = 0; i < asteroidPool.pool.length; i+=1){
-      var asteroid = asteroidPool.pool[i];
-      if(asteroid.visible == true){
-        if (this.box.x  < asteroid.x + asteroid.width && this.box.x + this.box.width  > asteroid.x &&
-          this.box.y < asteroid.y + asteroid.height && this.box.y + this.box.height > asteroid.y){
-          return true;
-        }
+  function PlayerBullet(){}
+    
+    PlayerBullet.prototype = Object.create(GameElement.prototype);
+    
+    //if returns true, the pool deactivates the current object
+    PlayerBullet.prototype.move = function move(dt) { 
+      this.x += this.speed * dt * 60/1000;
+      this.box = {x: this.x, y: this.y, width: this.width, height: this.height};
+      if (this.x >= canvas.width) {
+        return true;
+      } else if (this.detectCollisions()) {
+        return true;
       }
     }
-    for (var i = 0; i < enemyPool.pool.length; i+=1){
-      var enemy = enemyPool.pool[i];
-      if (enemy.visible == true && this.box.x  < enemy.x + enemy.width && this.box.x + this.box.width  > enemy.x &&
-          this.box.y < enemy.y + enemy.height && this.box.y + this.box.height > enemy.y){
-          addScore(1);
-          enemy.clear();
-          enemyPool.pool.push((enemyPool.pool.splice(i,1))[0]);
-          return true;
-        }
+    
+    PlayerBullet.prototype.load = function load(){
+      this.img = assetLoader.imgs.playerbullet;
+      this.width = this.img.width;
+      this.height = this.img.height;
     }
-  }
+    
+    PlayerBullet.prototype.detectCollisions = function detectCollisions(){
+      // player bullets disappear on hitting an asteroid
+      for (var i = 0; i < asteroidPool.pool.length; i+=1){
+        var asteroid = asteroidPool.pool[i];
+        if(asteroid.visible == true){
+          if (this.box.x  < asteroid.x + asteroid.width && this.box.x + this.box.width  > asteroid.x &&
+            this.box.y < asteroid.y + asteroid.height && this.box.y + this.box.height > asteroid.y){
+            return true;
+          }
+        }
+      }
+      // on hitting an enemy, both the enemy and the bullet are destroyed
+      for (var i = 0; i < enemyPool.pool.length; i+=1){
+        var enemy = enemyPool.pool[i];
+        if (enemy.visible == true && this.box.x  < enemy.x + enemy.width && this.box.x + this.box.width  > enemy.x &&
+            this.box.y < enemy.y + enemy.height && this.box.y + this.box.height > enemy.y){
+            addScore(1);
+            enemy.clear();
+            enemyPool.pool.push((enemyPool.pool.splice(i,1))[0]);
+            return true;
+          }
+      }
+    }
 
   /**
    * Class for the randomly-generated asteroid obstacles
    */
   function Asteroid(){}
 
-  Asteroid.prototype = Object.create(GameElement.prototype);
-  Asteroid.prototype.load = function load(){
-    this.img = asteroidPool.images[Math.floor(Math.random() * asteroidPool.images.length)];
-    this.width = this.img.width;
-    this.height = this.img.height;
-    this.rspeed = (Math.random() - 0.5)/20;
-    this.yspeed = (Math.random() - 0.5) * 3;
-    this.rot = 0;
-  }
-  Asteroid.prototype.move = function move(dt) {
-    this.x -= this.speed * dt * 60/1000;
-    this.y += this.yspeed * dt * 60/1000;
-    this.rot += this.rspeed * dt * 60/1000;
-    if (this.rot >= Math.PI * 2){ //made a complete rotation
+    Asteroid.prototype = Object.create(GameElement.prototype);
+    // called for each new spawn
+    Asteroid.prototype.load = function load(){
+      this.img = asteroidPool.images[Math.floor(Math.random() * asteroidPool.images.length)];
+      this.width = this.img.width;
+      this.height = this.img.height;
+      this.rspeed = (Math.random() - 0.5)/20;
+      this.yspeed = (Math.random() - 0.5) * 3;
       this.rot = 0;
-    } 
-    if (this.x <= 0 - this.width) {
-      return true;
     }
-    this.box = {x: this.x + this.width * 1/8, y: this.y + this.height * 1/8, width: this.width * 3/4, height: this.height * 3/4};
-  }
-  
-  Asteroid.prototype.detectCollisions = function detectCollisions(){
-    if (this.box.x  < ship.box.x + ship.box.width && this.box.x + this.box.width  > ship.box.x &&
-    this.box.y < ship.box.y + ship.box.height && this.box.y + this.box.height > ship.box.y){
-      gameOver();
+    //if returns true, the pool deactivates the current object
+    Asteroid.prototype.move = function move(dt) {
+      this.x -= this.speed * dt * 60/1000;
+      this.y += this.yspeed * dt * 60/1000;
+      this.rot += this.rspeed * dt * 60/1000;
+      if (this.rot >= Math.PI * 2){ //made a complete rotation
+        this.rot = 0;
+      } 
+      if (this.x <= 0 - this.width) {
+        return true;
+      }
+      //make the bounding box smaller than the image to prevent unrealistic collisions
+      this.box = {x: this.x + this.width * 1/8, y: this.y + this.height * 1/8, width: this.width * 3/4, height: this.height * 3/4};
     }
-  }
+    
+    Asteroid.prototype.detectCollisions = function detectCollisions(){
+      // game over if an asteroid hits a ship
+      if (this.box.x  < ship.box.x + ship.box.width && this.box.x + this.box.width  > ship.box.x &&
+      this.box.y < ship.box.y + ship.box.height && this.box.y + this.box.height > ship.box.y){
+        gameOver();
+      }
+    }
 
   /**
    * Class for enemy ships
    */
-  function Enemy(){
-  }
+  function Enemy(){}
 
-  Enemy.prototype = Object.create(GameElement.prototype);
-
-  Enemy.prototype = Object.create(GameElement.prototype);
-  
- 
-  Enemy.prototype.load = function load(){
-    this.img = enemyPool.images[Math.floor(Math.random() * enemyPool.images.length)];
-    this.width = this.img.width;
-    this.height = this.img.height;
-    this.yspeed = 5;
-    this.xplane = Math.floor(Math.random()*(canvas.width - 100) + 50);
-    this.direction = ["up", "down"][Math.floor(Math.random() * 2)];
-    this.fireRate = 30;
-    this.counter = 0;
-  }
-  Enemy.prototype.fire = function() {
-    enemyBulletPool.get(this.x, this.y + this.height * 1/2, 7);
-    this.counter = 0;
-  }
-  Enemy.prototype.move = function move(dt) {
-    this.counter += dt * 60/1000;
-    if(Math.floor(this.x) >= Math.floor(this.xplane)){
-      this.x -= this.speed * dt * 60/1000;
-    } 
-    if (this.direction == "up") { 
-      this.y -= this.yspeed * dt * 60/1000; 
-    }
-    if (this.direction == "down"){
-      this.y += this.yspeed * dt * 60/1000;
+    Enemy.prototype = Object.create(GameElement.prototype);
+   
+    Enemy.prototype.load = function load(){
+      this.img = enemyPool.images[Math.floor(Math.random() * enemyPool.images.length)];
+      this.width = this.img.width;
+      this.height = this.img.height;
+      this.yspeed = 5;
+      this.xplane = Math.floor(Math.random()*(canvas.width - 100) + 50);
+      this.direction = ["up", "down"][Math.floor(Math.random() * 2)];
+      this.fireRate = 30;
+      this.counter = 0;
     }
     
-    if(this.y <= 0){
-      this.direction = "down";
+    Enemy.prototype.fire = function() {
+      enemyBulletPool.get(this.x, this.y + this.height * 1/2, 7);
+      this.counter = 0;
     }
-    if(this.y + this.height >= canvas.height){
-      this.direction = "up";
+    
+    //if returns true, the pool deactivates the current object
+    Enemy.prototype.move = function move(dt) {
+      this.counter += dt * 60/1000;
+      if(Math.floor(this.x) >= Math.floor(this.xplane)){
+        this.x -= this.speed * dt * 60/1000;
+      } 
+      if (this.direction == "up") { 
+        this.y -= this.yspeed * dt * 60/1000; 
+      }
+      if (this.direction == "down"){
+        this.y += this.yspeed * dt * 60/1000;
+      }
+      
+      if(this.y <= 0){
+        this.direction = "down";
+      }
+      if(this.y + this.height >= canvas.height){
+        this.direction = "up";
+      }
+      if(this.counter >= this.fireRate){
+        this.fire();
+      }
+     
+      this.box = {x: this.x + this.width * 1/8, y: this.y + this.height * 1/8, width: this.width * 3/4, height: this.height * 3/4};
     }
-    if(this.counter >= this.fireRate){
-      this.fire();
+    
+    Enemy.prototype.detectCollisions = function detectCollisions(){
+      if (this.box.x  < ship.box.x + ship.box.width && this.box.x + this.box.width  > ship.box.x &&
+      this.box.y < ship.box.y + ship.box.height && this.box.y + this.box.height > ship.box.y){
+        gameOver();
+      }
     }
-   
-    this.box = {x: this.x + this.width * 1/8, y: this.y + this.height * 1/8, width: this.width * 3/4, height: this.height * 3/4};
-  }
-  
-  Enemy.prototype.detectCollisions = function detectCollisions(){
-    if (this.box.x  < ship.box.x + ship.box.width && this.box.x + this.box.width  > ship.box.x &&
-    this.box.y < ship.box.y + ship.box.height && this.box.y + this.box.height > ship.box.y){
-      gameOver();
-    }
-  }
 
   /**
-   * Class for the bullets fired by the player's ship
+   * Class for the bullets fired by the enemy ships
    */
-  function EnemyBullet(){
-  }
+  function EnemyBullet(){}
+  
   EnemyBullet.prototype = Object.create(GameElement.prototype);
+  
+  //if returns true, the pool deactivates the current object
   EnemyBullet.prototype.move = function move(dt) {
-    this.x -= this.speed ;
+    this.x -= this.xspeed * dt * 60/1000;
+    if(hardMode){
+      this.y += this.yspeed * dt * 60/1000;
+    }
+    this.rot -= this.rspeed * dt * 60/1000;
+    if (this.rot >= Math.PI * 2){ //made a complete rotation
+      this.rot = 0;
+    } 
     this.box = {x: this.x, y: this.y, width: this.width, height: this.height};
-    if (this.x <= 0) {
+    if (this.x <= 0 || this.y + this.height >= canvas.height || this.y <= 0) {
       return true;
     } else if (this.detectCollisions()) {
       return true;
     }
   }
+ 
   //called each time a new one is spawned
   EnemyBullet.prototype.load = function load(){
     this.img = assetLoader.imgs.enemybullet1;
     this.width = this.img.width;
     this.height = this.img.height;
+
+    var dy = ship.y - this.y;
+    var dx = Math.abs(ship.x - this.x);
+    var distance = Math.sqrt(dy*dy + dx*dx);
+    this.yspeed = this.speed * dy/distance;
+    this.xspeed = this.speed * dx/distance;
+    this.rspeed = this.yspeed >= 0 ? 0.3 : -0.3;
+    this.rot = 0;
   }
+  
   EnemyBullet.prototype.detectCollisions = function detectCollisions(){
+    // enemy bullets destoryed on hitting an asteroid
     for (var i = 0; i < asteroidPool.pool.length; i+=1){
       var asteroid = asteroidPool.pool[i];
       if(asteroid.visible == true){
@@ -351,7 +390,7 @@ var game = (function ($) {
         }
       }
     }
-    
+    // Game over if they hit the player ship
     if (this.box.x  < ship.x + ship.width && this.box.x + this.box.width  > ship.x &&
         this.box.y < ship.y + ship.height && this.box.y + this.box.height > ship.y){
         gameOver();
@@ -359,10 +398,18 @@ var game = (function ($) {
     }
   }
 
-  function Pool(){
-  }
+  /**
+   * Base class for object pools. Optimizes performance by reusing objects; keeps buckets of "visible"
+   * and "invisble" objects instead of creating and destroying objects. This avoids the performance hits of
+   * allocation and garbage collection. Based on an implementation by Steven Lambert.
+   */
+  function Pool(){}
 
   Pool.prototype.init = function init(size, type){
+     // run any class-specific init code
+      if (typeof this.preInit == "function"){
+        this.preInit();
+      }
       this.pool = [];
       this.size = size;
       for (var i = 0; i < size; i++) {
@@ -402,10 +449,10 @@ var game = (function ($) {
     }
   }
 
-  //use module pattern to create ship singleton
+  //use IIFE (Immediately Invoked Funcion Expression) module pattern to create ship singleton
   var ship = (function ship (ship){
-      var fireRate = 10;
-      var counter = 0;
+      var fireRate = 10; // the cooldown between firings (smaller number = faster firing rate)
+      var counter = 0; // how much of the cooldown has elapsed
 
       ship.init = function init(x, y, speed){
         ship.img = assetLoader.imgs.playership;
@@ -461,33 +508,52 @@ var game = (function ($) {
       };
      
       ship.fire = function() {
-        ship.bulletPool.get(ship.x+ship.width - 8, ship.y + ship.height * 5/8 + -1 , 7);
+        ship.bulletPool.get(ship.x+ship.width - 8, ship.y + ship.height * 5/8 + -1 , 8);
       }
 
 
       return ship;
   })(Object.create(GameElement.prototype));
 
+  /**
+   * Singleton containing the pool of available asteroids
+   */
   var asteroidPool = (function(pool){
+    //randomly spawn a new asteroid based on a chance coeffiecient
     pool.generate = function generate(){ 
       var asteroidChance = Math.floor(Math.random()*101);
       if (asteroidChance/100 < 0.005) {
         pool.get(canvas.width, Math.floor(Math.random() * canvas.height), Math.floor(Math.random() * 9));
       }
     }
+    //class-specific method called at top of init method
+    pool.preInit = function setImages(){
+      pool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
+    }
     return pool;
   })(Object.create(Pool.prototype))
 
+  /**
+   * Singleton containing the pool of enemy ships
+   */
   var enemyPool = (function(pool){
+    //randomly spawn a new enemy based on a chance coeffiecient
     pool.generate = function generate(){ 
       var chance = Math.floor(Math.random()*101);
       if (chance/100 < 0.005) {
         pool.get(canvas.width, Math.floor(Math.random() * canvas.height), 7);
       }
     }
+    //class-specific method called at top of init method
+    pool.preInit = function setImages(){
+      pool.images = [assetLoader.imgs.enemyship1];
+    }
     return pool;
   })(Object.create(Pool.prototype))
-
+  
+  /**
+   * Singleton containing pool of enemy bullets
+   */
   var enemyBulletPool = Object.create(Pool.prototype);
   /**
    * Game loop
@@ -521,7 +587,10 @@ var game = (function ($) {
       ship.bulletPool.draw();
     } 
   }
-
+  
+  /**
+   * Initalize and start the game
+   */
   function startGame() {
     score = 0;
     $("#score-counter span").html(0);
@@ -531,23 +600,27 @@ var game = (function ($) {
     ship.init(
       0, 
       Math.floor(canvas.height/2 - assetLoader.imgs.playership.height/2), 
-      6    
+      7    
     )
     asteroidPool.init(8, Asteroid);
-    asteroidPool.images = [assetLoader.imgs.asteroid1, assetLoader.imgs.asteroid2, assetLoader.imgs.asteroid3, assetLoader.imgs.asteroid4]
     enemyPool.init(7, Enemy);
-    enemyPool.images = [assetLoader.imgs.enemyship1];
     enemyBulletPool.init(50, EnemyBullet);
     ship.makeBullets();
     animate();
   }
 
+  /**
+   * Stop the game and display the Game Over screen
+   */
   function gameOver(){
     stop = true;
     var gameOver = document.getElementById("game-over");
     gameOver.style.display = 'block';
   }
 
+  /**
+   * Add to the player score and update the score counter element
+   */
   function addScore(n){
     score += n;
     $('#score-counter span').html(score);
@@ -617,17 +690,19 @@ var game = (function ($) {
       return fun;
   })();
 
+  //polyfill that either uses native DOM method or Date object
   function timestamp() {
     return window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
   }
 
-
+  // use jQuery to bind "new game" functionality to Game Over Screen
   $(document).ready(function(){
     $("#game-over").click(function(){
       $(this).fadeOut({duration: 400, start: startGame});
     })
   })
-
+  
+  // export a single method to start the game
   return {
     start: function(){
       assetLoader.downloadAll();
@@ -636,6 +711,7 @@ var game = (function ($) {
   
 })(jQuery);
 
+//Show start screen, and initialize game on click
 jQuery(document).ready(function($){
   var startscreen = $("#start-game");
   startscreen.show();
